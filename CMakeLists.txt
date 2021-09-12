@@ -36,6 +36,7 @@ option(HWLOC_DEBUG          "Enable hwloc debug helpers and log" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
+set(WITH_EMBEDDED_CONFIG ON)
 
 include (CheckIncludeFile)
 include (cmake/cpu.cmake)

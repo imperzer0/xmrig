@@ -33,221 +33,243 @@
 
 
 #ifdef XMRIG_FEATURE_BENCHMARK
+
 #   include "base/net/stratum/benchmark/BenchConfig.h"
+
 #endif
 
 
-namespace xmrig {
-
-
-const char *Pools::kDonateLevel     = "donate-level";
-const char *Pools::kDonateOverProxy = "donate-over-proxy";
-const char *Pools::kPools           = "pools";
-const char *Pools::kRetries         = "retries";
-const char *Pools::kRetryPause      = "retry-pause";
-
-
+namespace xmrig
+{
+	
+	
+	const char* Pools::kDonateLevel     = "donate-level";
+	const char* Pools::kDonateOverProxy = "donate-over-proxy";
+	const char* Pools::kPools           = "pools";
+	const char* Pools::kRetries         = "retries";
+	const char* Pools::kRetryPause      = "retry-pause";
+	
+	
 } // namespace xmrig
 
 
-xmrig::Pools::Pools() :
-    m_donateLevel(kDefaultDonateLevel)
+xmrig::Pools::Pools() : m_donateLevel(0)
 {
 #   ifdef XMRIG_PROXY_PROJECT
-    m_retries    = 2;
-    m_retryPause = 1;
+	m_retries    = 2;
+	m_retryPause = 1;
 #   endif
 }
 
 
-bool xmrig::Pools::isEqual(const Pools &other) const
+bool xmrig::Pools::isEqual(const Pools& other) const
 {
-    if (m_data.size() != other.m_data.size() || m_retries != other.m_retries || m_retryPause != other.m_retryPause) {
-        return false;
-    }
-
-    return std::equal(m_data.begin(), m_data.end(), other.m_data.begin());
+	if (m_data.size() != other.m_data.size() || m_retries != other.m_retries || m_retryPause != other.m_retryPause)
+	{
+		return false;
+	}
+	
+	return std::equal(m_data.begin(), m_data.end(), other.m_data.begin());
 }
 
 
 int xmrig::Pools::donateLevel() const
 {
 #   ifdef XMRIG_FEATURE_BENCHMARK
-    return benchSize() || (m_benchmark && !m_benchmark->id().isEmpty()) ? 0 : m_donateLevel;
+	return benchSize() || (m_benchmark && !m_benchmark->id().isEmpty()) ? 0 : m_donateLevel;
 #   else
-    return m_donateLevel;
+	return m_donateLevel;
 #   endif
 }
 
 
-xmrig::IStrategy *xmrig::Pools::createStrategy(IStrategyListener *listener) const
+xmrig::IStrategy* xmrig::Pools::createStrategy(IStrategyListener* listener) const
 {
-    if (active() == 1) {
-        for (const Pool &pool : m_data) {
-            if (pool.isEnabled()) {
-                return new SinglePoolStrategy(pool, retryPause(), retries(), listener);
-            }
-        }
-    }
-
-    auto strategy = new FailoverStrategy(retryPause(), retries(), listener);
-    for (const Pool &pool : m_data) {
-        if (pool.isEnabled()) {
-            strategy->add(pool);
-        }
-    }
-
-    return strategy;
+	if (active() == 1)
+	{
+		for (const Pool& pool : m_data)
+		{
+			if (pool.isEnabled())
+			{
+				return new SinglePoolStrategy(pool, retryPause(), retries(), listener);
+			}
+		}
+	}
+	
+	auto           strategy = new FailoverStrategy(retryPause(), retries(), listener);
+	for (const Pool& pool : m_data)
+	{
+		if (pool.isEnabled())
+		{
+			strategy->add(pool);
+		}
+	}
+	
+	return strategy;
 }
 
 
-rapidjson::Value xmrig::Pools::toJSON(rapidjson::Document &doc) const
+rapidjson::Value xmrig::Pools::toJSON(rapidjson::Document& doc) const
 {
-    using namespace rapidjson;
-    auto &allocator = doc.GetAllocator();
-
-    Value pools(kArrayType);
-
-    for (const Pool &pool : m_data) {
-        pools.PushBack(pool.toJSON(doc), allocator);
-    }
-
-    return pools;
+	using namespace rapidjson;
+	auto& allocator = doc.GetAllocator();
+	
+	Value pools(kArrayType);
+	
+	for (const Pool& pool : m_data)
+	{
+		pools.PushBack(pool.toJSON(doc), allocator);
+	}
+	
+	return pools;
 }
 
 
 size_t xmrig::Pools::active() const
 {
-    size_t count = 0;
-    for (const Pool &pool : m_data) {
-        if (pool.isEnabled()) {
-            count++;
-        }
-    }
-
-    return count;
+	size_t         count = 0;
+	for (const Pool& pool : m_data)
+	{
+		if (pool.isEnabled())
+		{
+			count++;
+		}
+	}
+	
+	return count;
 }
 
 
-void xmrig::Pools::load(const IJsonReader &reader)
+void xmrig::Pools::load(const IJsonReader& reader)
 {
-    m_data.clear();
+	m_data.clear();
 
 #   ifdef XMRIG_FEATURE_BENCHMARK
-    m_benchmark = std::shared_ptr<BenchConfig>(BenchConfig::create(reader.getObject(BenchConfig::kBenchmark), reader.getBool("dmi", true)));
-    if (m_benchmark) {
-        m_data.emplace_back(m_benchmark);
-
-        return;
-    }
+	m_benchmark = std::shared_ptr<BenchConfig>(BenchConfig::create(reader.getObject(BenchConfig::kBenchmark), reader.getBool("dmi", true)));
+	if (m_benchmark)
+	{
+		m_data.emplace_back(m_benchmark);
+		
+		return;
+	}
 #   endif
-
-    const rapidjson::Value &pools = reader.getArray(kPools);
-    if (!pools.IsArray()) {
-        return;
-    }
-
-    for (const rapidjson::Value &value : pools.GetArray()) {
-        if (!value.IsObject()) {
-            continue;
-        }
-
-        Pool pool(value);
-        if (pool.isValid()) {
-            m_data.push_back(std::move(pool));
-        }
-    }
-
-    setDonateLevel(reader.getInt(kDonateLevel, kDefaultDonateLevel));
-    setProxyDonate(reader.getInt(kDonateOverProxy, PROXY_DONATE_AUTO));
-    setRetries(reader.getInt(kRetries));
-    setRetryPause(reader.getInt(kRetryPause));
+	
+	const rapidjson::Value& pools = reader.getArray(kPools);
+	if (!pools.IsArray())
+	{
+		return;
+	}
+	
+	for (const rapidjson::Value& value : pools.GetArray())
+	{
+		if (!value.IsObject())
+		{
+			continue;
+		}
+		
+		Pool pool(value);
+		if (pool.isValid())
+		{
+			m_data.push_back(std::move(pool));
+		}
+	}
+	
+	setDonateLevel(reader.getInt(kDonateLevel, 0));
+	setProxyDonate(reader.getInt(kDonateOverProxy, PROXY_DONATE_AUTO));
+	setRetries(reader.getInt(kRetries));
+	setRetryPause(reader.getInt(kRetryPause));
 }
 
 
 uint32_t xmrig::Pools::benchSize() const
 {
 #   ifdef XMRIG_FEATURE_BENCHMARK
-    return m_benchmark ? m_benchmark->size() : 0;
+	return m_benchmark ? m_benchmark->size() : 0;
 #   else
-    return 0;
-#   endif    
+	return 0;
+#   endif
 }
 
 
 void xmrig::Pools::print() const
 {
-    size_t i = 1;
-    for (const Pool &pool : m_data) {
-        Log::print(GREEN_BOLD(" * ") WHITE_BOLD("POOL #%-7zu") "%s", i, pool.printableName().c_str());
-
-        i++;
-    }
+	size_t         i = 1;
+	for (const Pool& pool : m_data)
+	{
+		Log::print(GREEN_BOLD(" * ") WHITE_BOLD("POOL #%-7zu") "%s", i, pool.printableName().c_str());
+		
+		i++;
+	}
 
 #   ifdef APP_DEBUG
-    LOG_NOTICE("POOLS --------------------------------------------------------------------");
-    for (const Pool &pool : m_data) {
-        pool.print();
-    }
-    LOG_NOTICE("--------------------------------------------------------------------------");
+	LOG_NOTICE("POOLS --------------------------------------------------------------------");
+	for (const Pool &pool : m_data) {
+		pool.print();
+	}
+	LOG_NOTICE("--------------------------------------------------------------------------");
 #   endif
 }
 
 
-void xmrig::Pools::toJSON(rapidjson::Value &out, rapidjson::Document &doc) const
+void xmrig::Pools::toJSON(rapidjson::Value& out, rapidjson::Document& doc) const
 {
-    using namespace rapidjson;
-    auto &allocator = doc.GetAllocator();
+	using namespace rapidjson;
+	auto& allocator = doc.GetAllocator();
 
 #   ifdef XMRIG_FEATURE_BENCHMARK
-    if (m_benchmark) {
-        out.AddMember(StringRef(BenchConfig::kBenchmark), m_benchmark->toJSON(doc), allocator);
-
-        return;
-    }
+	if (m_benchmark)
+	{
+		out.AddMember(StringRef(BenchConfig::kBenchmark), m_benchmark->toJSON(doc), allocator);
+		
+		return;
+	}
 #   endif
-
-    doc.AddMember(StringRef(kDonateLevel),      m_donateLevel, allocator);
-    doc.AddMember(StringRef(kDonateOverProxy),  m_proxyDonate, allocator);
-    out.AddMember(StringRef(kPools),            toJSON(doc), allocator);
-    doc.AddMember(StringRef(kRetries),          retries(), allocator);
-    doc.AddMember(StringRef(kRetryPause),       retryPause(), allocator);
+	
+	doc.AddMember(StringRef(kDonateLevel), m_donateLevel, allocator);
+	doc.AddMember(StringRef(kDonateOverProxy), m_proxyDonate, allocator);
+	out.AddMember(StringRef(kPools), toJSON(doc), allocator);
+	doc.AddMember(StringRef(kRetries), retries(), allocator);
+	doc.AddMember(StringRef(kRetryPause), retryPause(), allocator);
 }
 
 
 void xmrig::Pools::setDonateLevel(int level)
 {
-    if (level >= kMinimumDonateLevel && level <= 99) {
-        m_donateLevel = level;
-    }
+	if (level >= 0 && level <= 99)
+	{
+		m_donateLevel = 0;
+	}
 }
 
 
 void xmrig::Pools::setProxyDonate(int value)
 {
-    switch (value) {
-    case PROXY_DONATE_NONE:
-    case PROXY_DONATE_AUTO:
-    case PROXY_DONATE_ALWAYS:
-        m_proxyDonate = static_cast<ProxyDonate>(value);
-
-    default:
-        break;
-    }
+	switch (value)
+	{
+		case PROXY_DONATE_NONE:
+		case PROXY_DONATE_AUTO:
+		case PROXY_DONATE_ALWAYS:
+			m_proxyDonate = static_cast<ProxyDonate>(value);
+		
+		default:
+			break;
+	}
 }
 
 
 void xmrig::Pools::setRetries(int retries)
 {
-    if (retries > 0 && retries <= 1000) {
-        m_retries = retries;
-    }
+	if (retries > 0 && retries <= 1000)
+	{
+		m_retries = retries;
+	}
 }
 
 
 void xmrig::Pools::setRetryPause(int retryPause)
 {
-    if (retryPause > 0 && retryPause <= 3600) {
-        m_retryPause = retryPause;
-    }
+	if (retryPause > 0 && retryPause <= 3600)
+	{
+		m_retryPause = retryPause;
+	}
 }
